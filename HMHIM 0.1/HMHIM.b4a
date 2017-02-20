@@ -1,0 +1,378 @@
+﻿Version=3
+IconFile=
+NumberOfModules=1
+Module1=StateManager
+ModuleVisible1=1
+Package=b4a.example
+DoNotOverwriteManifest=False
+ManifestCode='This code will be applied to the manifest file during compilation.~\n~'You do not need to modify it in most cases.~\n~'See this link for for more information: http://www.basic4ppc.com/forum/showthread.php?p=78136~\n~AddManifestText(~\n~<uses-sdk android:minSdkVersion="4" android:targetSdkVersion="14"/>~\n~<supports-screens android:largeScreens="true" ~\n~    android:normalScreens="true" ~\n~    android:smallScreens="true" ~\n~    android:anyDensity="true"/>)~\n~SetApplicationAttribute(android:icon, "@drawable/icon")~\n~SetApplicationAttribute(android:label, "$LABEL$")~\n~'End of default text.~\n~~\n~AddApplicationText(<activity android:name="de.amberhome.objects.preferenceactivity"/>)
+UserTypesHint=
+NumberOfFiles=1
+File1=lytMain.bal
+NumberOfLibraries=5
+Library1=ahpreferenceactivity
+Library2=core
+Library3=phone
+Library4=randomaccessfile
+Library5=reflection
+@EndOfDesignText@
+#Region  Project Attributes 
+	#ApplicationLabel: How Much Have I Made
+	#VersionCode: 1
+	#VersionName: 
+	'SupportedOrientations possible values: unspecified, landscape or portrait.
+	#SupportedOrientations: portrait
+	#CanInstallToExternalStorage: False
+#End Region
+
+#Region  Activity Attributes 
+	#FullScreen: False
+	#IncludeTitle: False
+#End Region
+
+Sub Process_Globals
+
+	Dim Timer1 As Timer
+	Dim Timer2 As Timer
+		
+End Sub
+
+Sub Globals
+	'These global variables will be redeclared each time the activity is created.
+	'These variables can only be accessed from this module.
+	
+	Dim lblMade As Label
+	Dim lblMoney As Label
+	Dim lblTimepassed As Label
+	Dim lblWage As Label
+	Dim lblRandom As Label
+	Dim txtWage As EditText
+	Dim btnStart As Button
+	Dim btnReset As Button
+	Dim dblWage As Double
+    Dim dblSec As Double
+	Dim spnCurrency As Spinner
+	Dim p As Phone
+	
+	Dim TimeStart As Long
+	Dim TimePassedSinceStart As Long
+	Dim TimeIdled As Long
+	Dim TotalTime As Long
+	Dim MoneyMade As Long
+	Dim SliderPos As Int
+	'pause
+	Dim Time1 As Long
+	Dim Time2 As Long
+	Dim Timepassed As Long
+	
+	Dim dblVal As Double
+	Dim strMoney As String
+	Dim strKey As String
+	
+	Dim dblConvert As Double
+	Dim strCurrency As String
+	
+	Dim ListKey As List
+	Dim ListVal As List
+	
+	Dim btnSettings As Button
+	Dim PrefScreen As AHPreferenceScreen
+	Dim PrefMan As AHPreferenceManager
+	
+	Dim listManCurr As List
+
+End Sub
+
+
+Sub btnSettings_Down
+
+	StartActivity(PrefScreen.CreateIntent)
+		
+End Sub
+
+
+Sub btnStart_Down
+
+	'If dblWage = 0 Then 'txtWage.Text.length = 0 Then
+		'DoNothing
+	'Else
+		
+		If Timer1.Enabled = False AND TimeStart = 0 Then
+			TimeStart = (DateTime.now /1000)
+			Timer1.Enabled = True
+			Timer2.Enabled = True
+			StateManager.SetSetting("TimeStart", TimeStart)
+			'StateManager.SetSetting("Wage", dblWage)
+			'StateManager.SetSetting("Sec", dblSec)
+			btnStart.Text = "Press screen to pause"
+		Else If Timer1.enabled = False Then
+			Time2 = (DateTime.now/1000)
+			Time1 = StateManager.GetSetting2("Time1", "0")
+			Timepassed = Time2 - Time1
+			StateManager.SetSetting("Time1", 0)
+			TimeIdled = TimeIdled + Timepassed
+			StateManager.SetSetting("TimeIdled", TimeIdled)
+			Timer1.Enabled = True
+			Timer2.Enabled = True
+			btnStart.Text = "Press screen to pause"
+		Else
+			Timer1.Enabled = False
+			Timer2.Enabled = False
+			Time1 = (DateTime.Now/1000)
+			StateManager.SetSetting("Time1", Time1)
+			btnStart.Text = "Press screen to start"
+			StateManager.SaveSettings
+		End If
+	'End If
+	
+	p.hidekeyboard(Activity)
+
+End Sub
+
+
+Sub btnReset_down
+	
+	Dim result As Int
+	
+	result = Msgbox2("Are you sure you want to reset your money made?", "Warning", "Yes", "Cancel", "", Null)
+	
+	If result = DialogResponse.positive Then
+		MoneyMade = 0
+		TimePassedSinceStart = 0
+		TimeIdled = 0
+		TimeStart = 0
+		TotalTime = 0
+		Time1 = 0
+		Time2 = 0
+		lblTimepassed.Text = "00:00:00"
+		lblRandom.Text = ""
+		btnStart.Text = "Press screen to start"
+		StateManager.SetSetting("TotalTime", 0)
+		StateManager.SetSetting("MoneyMade", 0)
+		StateManager.SetSetting("TimeStart", 0)
+		StateManager.SetSetting("Sec", 0)
+		StateManager.SetSetting("Wage", 0)
+		StateManager.SetSetting("TimeIdled", 0)
+		StateManager.SetSetting("Time1", 0)
+		StateManager.SaveSettings
+		lblMoney.Text = strCurrency & MoneyMade
+		Timer1.Enabled = False
+		Timer2.Enabled = False
+	Else
+		'DoNothing
+	End If
+
+End Sub
+
+
+Sub Activity_KeyPress (KeyCode As Int) As Boolean 'ignore
+
+	If KeyCode = KeyCodes.KEYCODE_BACK Then
+		Dim result As Int
+		result = Msgbox2("Are you sure you want to quit the application?", "Warning", "Yes", "Cancel", "", Null)
+		If result = DialogResponse.POSITIVE Then
+			ExitApplication
+		Else
+			Return True
+		End If
+	End If
+
+End Sub
+
+
+Sub Timer1_Tick
+
+
+	TimePassedSinceStart = (DateTime.Now/1000) - TimeStart
+	TotalTime = TimePassedSinceStart - TimeIdled
+	MoneyMade = NumberFormat((TotalTime*dblSec), 1, 2)
+	lblMoney.Text = strCurrency & NumberFormat((TotalTime*dblSec), 1, 2)
+	lblTimepassed.Text = DateTime.Time(TotalTime * 1000)
+	
+	StateManager.SetSetting("TotalTime", TotalTime)
+	StateManager.SetSetting("MoneyMade", MoneyMade)
+	StateManager.SaveSettings
+
+End Sub
+
+
+Sub Timer2_Tick
+
+	RandomPick
+	
+End Sub
+
+
+Sub spnCurrency_ItemClick(Position As Int, Value As Object)
+	
+	If Position = 0 Then
+		dblConvert = 1.37
+		strCurrency = "$"
+	Else If Position = 1 Then
+		dblConvert = 1
+		strCurrency = "€"
+	Else
+		dblConvert = 0.84
+		strCurrency = "£"
+	End If
+	
+	lblMoney.Text = strCurrency & NumberFormat((TotalTime*dblSec), 1, 2)
+	
+	StateManager.SetSetting("Conversion", dblConvert)
+	StateManager.SetSetting("SlnPos", Position)
+	StateManager.SetSetting("Currency", Value)
+	StateManager.SaveSettings
+
+	If lblRandom.Text = "" Then
+	Else
+		strMoney = NumberFormat((dblVal/3600) * TotalTime * dblConvert, 1, 0)
+		lblRandom.text = ("By now, " & strKey & " would have made " & strCurrency & strMoney)
+	End If
+	
+End Sub
+
+
+Sub Activity_Create(FirstTime As Boolean)
+	
+	
+	'Create Settings screen (PreferenceActivity)
+	listManCurr.Initialize
+	listManCurr.AddAll(Array As String("$", "€", "£"))
+
+	If FirstTime Then
+		SetDefaults
+		CreatePreferenceScreen
+	End If
+	
+	
+	
+	Activity.LoadLayout("lytMain")
+	Timer1.Initialize("Timer1", 1000)
+	Timer2.Initialize("Timer2", 30000)
+	
+	ListKey.Initialize
+	ListVal.Initialize
+	
+	ListKey.AddAll(Array As String("Cristiano Ronaldo", "Gareth Bale", "Madonna", "Donald Trump", "Ralph Lauren", "Barrack Obama", "Michael Jordan", "Shaquille O'Neal", "Kobe Bryant", "LeBron James", "Queen Elizabeth", "Warren Buffett", "Tony Blair", "Lady Gaga", "Eminem", "Johnny Depp", "Will Smith", "Katy Perry", "Beyonce", "Leonardo DiCaprio", "Roger Federer", "Lionel Messi", "Shakira", "Rihanna", "Adele", "Nicolas Cage", "Nicki Minaj", "Tom Cruise", "Naomi Campbell", "George Clooney", "Suzanne Collins", "Taylor Swift", "Britney Spears", "Hugh Jackman", "Bill Gates", "Mark Zuckerberg"))
+	ListVal.AddAll(Array As Int(1940, 2715, 15140, 6850, 3000, 50, 6640, 1660, 2530, 1580, 8300, 5140, 70, 9690, 4720, 3630, 2790, 4720, 6420, 4720, 8660, 5000, 5330, 5200, 3630, 2850, 3510, 190850, 4240, 100, 2300, 6660, 6660, 7020, 6660, 117000, 190850))
+	
+	spnCurrency.AddAll(Array As String("$", "€", "£"))
+	spnCurrency.SelectedIndex = 0
+	
+	txtWage.SingleLine = True
+	
+	lblTimepassed.Gravity = Gravity.CENTER
+	lblTimepassed.Text = "00:00:00"
+	lblMoney.Gravity = Gravity.CENTER
+	lblRandom.Gravity = Gravity.CENTER
+	DateTime.SetTimeZone(0)
+	
+	If StateManager.GetSetting("Wage") = 0 OR StateManager.GetSetting("Wage") = "" Then
+		strCurrency = "$"
+		MoneyMade = 0
+	Else
+		btnStart.Text = "Press screen to pause"
+		TimeStart = StateManager.GetSetting2("TimeStart", 0)
+		dblSec = StateManager.GetSetting2("Sec", 0)
+		dblWage = StateManager.GetSetting2("Wage", 0)
+		TimeIdled = StateManager.GetSetting2("TimeIdled", 0)
+		Time1 = StateManager.GetSetting2("Time1", 0)
+		TotalTime = StateManager.GetSetting2("TotalTime", 0)
+		MoneyMade = StateManager.GetSetting2("MoneyMade", 0)
+
+		txtWage.Text = dblWage
+		
+		If Time1 = 0 Then
+			'DoNothing
+		Else
+			Time2 = (DateTime.now/1000)
+			Timepassed = Time2 - Time1
+			TimeIdled = TimeIdled + Timepassed
+			StateManager.SetSetting("TimeIdled", TimeIdled)
+			StateManager.SetSetting("Time1", 0)
+		End If
+		
+		Timer1.Enabled = True
+		Timer2.Enabled = True
+		RandomPick
+	End If
+	
+	dblConvert = StateManager.GetSetting2("Conversion", 0.84)
+	SliderPos = StateManager.GetSetting2("SlnPos", 0)
+	strCurrency = StateManager.GetSetting2("Currency", "$")
+	
+	spnCurrency.SelectedIndex = SliderPos
+	
+	lblMoney.Text = strCurrency & MoneyMade
+	
+End Sub
+
+
+Sub CreatePreferenceScreen
+
+	PrefScreen.Initialize("Settings", "")
+	Dim cat1 As AHPreferenceCategory
+	cat1.Initialize("Settings")
+	
+	cat1.AddEditText2("wage", "Hourly Wage", "", "10", 12290, False, True, Null)
+	cat1.AddList("currency", "Currency", "", "$", Null, listManCurr)
+	cat1.AddCheckBox("tips", "Enable tips", "", "", False, Null)
+	
+	PrefScreen.AddPreferenceCategory(cat1)	
+	
+	'needed: hourly wage, currency, tip
+
+End Sub
+
+
+Sub SetDefaults
+
+	PrefMan.SetString("wage", "10")
+	PrefMan.SetString("currency", "$")
+	PrefMan.setBoolean("tips", False)
+
+End Sub
+
+
+Sub RandomPick
+	
+	Dim Randomnum As Int
+	
+	Randomnum = Rnd(0, 36)
+	
+	strKey = ListKey.Get(Randomnum)
+	dblVal = ListVal.Get(Randomnum)
+	
+	strMoney = NumberFormat((dblVal/3600) * TotalTime * dblConvert, 1, 0)
+	
+	lblRandom.text = ("By now, " & strKey & " would have made " & strCurrency & strMoney)
+
+	
+End Sub
+
+
+Sub Activity_Resume
+	
+	If PrefMan.GetString("wage") = Null Then
+		dblWage = 0
+			Else
+		dblWage = PrefMan.GetString("wage")
+		dblSec = (dblWage / 3600)
+	End If
+	
+	If MoneyMade = 0 Then
+	Else
+		RandomPick
+	End If
+	
+	StateManager.SetSetting("Wage", dblWage)
+	StateManager.SetSetting("Sec", dblSec)
+	statemanager.SaveSettings
+	
+	
+End Sub
+
+
+Sub Activity_Pause (UserClosed As Boolean)
+
+End Sub
